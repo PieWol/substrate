@@ -28,8 +28,8 @@ pub use crate::wasm::runtime::api_doc;
 pub use tests::MockExt;
 
 pub use crate::wasm::runtime::{
-	AllowDeprecatedInterface, AllowUnstableInterface, CallFlags, Environment, ReturnCode, Runtime,
-	RuntimeCosts, Memory, RiscvMemory, WasmMemory,
+	AllowDeprecatedInterface, AllowUnstableInterface, CallFlags, Environment, Memory, ReturnCode,
+	RiscvMemory, Runtime, RuntimeCosts, WasmMemory,
 };
 
 use crate::{
@@ -48,7 +48,7 @@ use frame_support::{
 	traits::{fungible::MutateHold, tokens::Precision::BestEffort},
 };
 use sp_core::Get;
-use sp_runtime::{RuntimeDebug, traits::Hash};
+use sp_runtime::{traits::Hash, RuntimeDebug};
 use sp_std::prelude::*;
 use wasmi::{Instance, Linker, Memory as WasmiMemory, MemoryType, StackLimits, Store};
 const BYTES_PER_PAGE: usize = 64 * 1024;
@@ -160,9 +160,11 @@ impl<T: Config> WasmBlob<T> {
 		determinism: Determinism,
 	) -> Result<Self, (DispatchError, &'static str)> {
 		// We need to make sure that the code isn't too large.
-		let code: CodeVec<T> = code.try_into().map_err(|_| (<Error<T>>::CodeTooLarge.into(), ""))?;
+		let code: CodeVec<T> =
+			code.try_into().map_err(|_| (<Error<T>>::CodeTooLarge.into(), ""))?;
 
-		// Calculate deposit for storing contract code and `code_info` in two different storage items.
+		// Calculate deposit for storing contract code and `code_info` in two different storage
+		// items.
 		let code_len = code.len() as u32;
 		let bytes_added = code_len.saturating_add(<CodeInfo<T>>::max_encoded_len() as u32);
 		let deposit = Diff { bytes_added, items_added: 2, ..Default::default() }
@@ -172,8 +174,8 @@ impl<T: Config> WasmBlob<T> {
 		let code_hash = T::Hashing::hash(&code);
 		let result = WasmBlob { code, code_info, code_hash };
 
-		// Only in case of a wasm blob we do validation. Otherwise we assume RISC-V and accept anything.
-		// TODO: validate RISC-V blob
+		// Only in case of a wasm blob we do validation. Otherwise we assume RISC-V and accept
+		// anything. TODO: validate RISC-V blob
 		if result.is_wasm() {
 			prepare::validate::<runtime::Env, T>(result.code.as_ref(), schedule, determinism)?;
 		}
@@ -348,10 +350,10 @@ impl<T: Config> WasmBlob<T> {
 				ExportedFunction::Constructor => AllowDeprecatedInterface::No,
 			},
 		)
-			.map_err(|msg| {
-				log::debug!(target: LOG_TARGET, "failed to instantiate code to wasmi: {}", msg);
-				Error::<T>::CodeRejected
-			})?;
+		.map_err(|msg| {
+			log::debug!(target: LOG_TARGET, "failed to instantiate code to wasmi: {}", msg);
+			Error::<T>::CodeRejected
+		})?;
 		store.data_mut().set_memory(memory);
 
 		// Set fuel limit for the wasmi execution.
@@ -410,7 +412,7 @@ impl<T: Config> WasmBlob<T> {
 			code,
 			function.register_value(),
 			runtime::Env::handler_idx::<E>(),
-			&mut state as *mut _ as u32
+			&mut state as *mut _ as u32,
 		);
 
 		#[cfg(feature = "std")]
@@ -420,8 +422,10 @@ impl<T: Config> WasmBlob<T> {
 
 		let outcome = match outcome {
 			RiscvExecOutcome::Ok => Ok(()),
-			RiscvExecOutcome::OutOfGas => Err(wasmi::Error::Trap(wasmi::core::TrapCode::OutOfFuel.into())),
-			RiscvExecOutcome::Trap => Err(wasmi::Error::Trap(wasmi::core::Trap::new("Contract trapped"))),
+			RiscvExecOutcome::OutOfGas =>
+				Err(wasmi::Error::Trap(wasmi::core::TrapCode::OutOfFuel.into())),
+			RiscvExecOutcome::Trap =>
+				Err(wasmi::Error::Trap(wasmi::core::Trap::new("Contract trapped"))),
 			RiscvExecOutcome::InvalidImage => panic!("Invalid image supplied"),
 		};
 

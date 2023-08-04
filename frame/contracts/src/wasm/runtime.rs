@@ -1146,7 +1146,7 @@ pub mod env {
 	/// `SENTINEL` is returned as a sentinel value.
 	#[version(2)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(1)]
+	#[riscv(syscall_no(1))]
 	fn set_storage(
 		ctx: _,
 		memory: _,
@@ -1181,7 +1181,7 @@ pub mod env {
 	/// `SENTINEL` is returned as a sentinel value.
 	#[version(1)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(2)]
+	#[riscv(syscall_no(2))]
 	fn clear_storage(ctx: _, memory: _, key_ptr: u32, key_len: u32) -> Result<u32, TrapReason> {
 		ctx.clear_storage(memory, KeyType::Var(key_len), key_ptr)
 	}
@@ -1232,7 +1232,7 @@ pub mod env {
 	/// - `ReturnCode::KeyNotFound`
 	#[version(1)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(3)]
+	#[riscv(syscall_no(3))]
 	fn get_storage(
 		ctx: _,
 		memory: _,
@@ -1277,7 +1277,7 @@ pub mod env {
 	/// `SENTINEL` is returned as a sentinel value.
 	#[version(1)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(4)]
+	#[riscv(syscall_no(4))]
 	fn contains_storage(ctx: _, memory: _, key_ptr: u32, key_len: u32) -> Result<u32, TrapReason> {
 		ctx.contains_storage(memory, KeyType::Var(key_len), key_ptr)
 	}
@@ -1296,7 +1296,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::KeyNotFound`
 	#[prefixed_alias]
-	#[riscv_syscall_no(5)]
+	#[riscv(syscall_no(5))]
 	fn take_storage(
 		ctx: _,
 		memory: _,
@@ -1340,7 +1340,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::TransferFailed`
 	#[prefixed_alias]
-	#[riscv_syscall_no(6)]
+	#[riscv(syscall_no(6))]
 	fn transfer(
 		ctx: _,
 		memory: _,
@@ -1413,7 +1413,7 @@ pub mod env {
 	/// stabilized.
 	#[version(1)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(7)]
+	#[riscv(syscall_no(7), pass_by_reference)]
 	fn call(
 		ctx: _,
 		memory: _,
@@ -1478,7 +1478,7 @@ pub mod env {
 	/// - `ReturnCode::NotCallable`
 	#[version(2)]
 	#[unstable]
-	#[riscv_syscall_no(8)]
+	#[riscv(syscall_no(8), pass_by_reference)]
 	fn call(
 		ctx: _,
 		memory: _,
@@ -1534,7 +1534,7 @@ pub mod env {
 	/// - `ReturnCode::CalleeTrapped`
 	/// - `ReturnCode::CodeNotFound`
 	#[prefixed_alias]
-	#[riscv_syscall_no(9)]
+	#[riscv(syscall_no(9), pass_by_reference)]
 	fn delegate_call(
 		ctx: _,
 		memory: _,
@@ -1610,7 +1610,7 @@ pub mod env {
 	/// stabilized.
 	#[version(1)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(10)]
+	#[riscv(syscall_no(10), pass_by_reference)]
 	fn instantiate(
 		ctx: _,
 		memory: _,
@@ -1688,7 +1688,7 @@ pub mod env {
 	/// - `ReturnCode::CodeNotFound`
 	#[version(2)]
 	#[unstable]
-	#[riscv_syscall_no(11)]
+	#[riscv(syscall_no(11), pass_by_reference)]
 	fn instantiate(
 		ctx: _,
 		memory: _,
@@ -1762,7 +1762,7 @@ pub mod env {
 	/// - The deletion queue is full.
 	#[version(1)]
 	#[prefixed_alias]
-	#[riscv_syscall_no(12)]
+	#[riscv(syscall_no(12))]
 	fn terminate(ctx: _, memory: _, beneficiary_ptr: u32) -> Result<(), TrapReason> {
 		ctx.terminate(memory, beneficiary_ptr)
 	}
@@ -1778,7 +1778,7 @@ pub mod env {
 	///
 	/// This function traps if the input was previously forwarded by a [`call()`][`Self::call()`].
 	#[prefixed_alias]
-	#[riscv_syscall_no(13)]
+	#[riscv(syscall_no(13))]
 	fn input(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::InputBase)?;
 		if let Some(input) = ctx.input_data.take() {
@@ -1809,7 +1809,7 @@ pub mod env {
 	/// --- msb ---
 	///
 	/// Using a reserved bit triggers a trap.
-	#[riscv_syscall_no(14)]
+	#[riscv(syscall_no(14))]
 	fn seal_return(
 		ctx: _,
 		memory: _,
@@ -1835,7 +1835,7 @@ pub mod env {
 	/// If there is no address associated with the caller (e.g. because the caller is root) then
 	/// it traps with `BadOrigin`.
 	#[prefixed_alias]
-	#[riscv_syscall_no(15)]
+	#[riscv(syscall_no(15))]
 	fn caller(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::Caller)?;
 		let caller = ctx.ext.caller().account_id()?.clone();
@@ -1858,7 +1858,7 @@ pub mod env {
 	///
 	/// Returned value is a `u32`-encoded boolean: (0 = false, 1 = true).
 	#[prefixed_alias]
-	#[riscv_syscall_no(16)]
+	#[riscv(syscall_no(16))]
 	fn is_contract(ctx: _, memory: _, account_ptr: u32) -> Result<u32, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::IsContract)?;
 		let address: <<E as Ext>::T as frame_system::Config>::AccountId =
@@ -1881,7 +1881,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::KeyNotFound`
 	#[prefixed_alias]
-	#[riscv_syscall_no(17)]
+	#[riscv(syscall_no(17))]
 	fn code_hash(
 		ctx: _,
 		memory: _,
@@ -1915,7 +1915,7 @@ pub mod env {
 	/// - `out_len_ptr`: in-out pointer into linear memory where the buffer length is read from and
 	///   the value length is written to.
 	#[prefixed_alias]
-	#[riscv_syscall_no(18)]
+	#[riscv(syscall_no(18))]
 	fn own_code_hash(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::OwnCodeHash)?;
 		let code_hash_encoded = &ctx.ext.own_code_hash().encode();
@@ -1940,7 +1940,7 @@ pub mod env {
 	///
 	/// Returned value is a `u32`-encoded boolean: (`0 = false`, `1 = true`).
 	#[prefixed_alias]
-	#[riscv_syscall_no(19)]
+	#[riscv(syscall_no(19))]
 	fn caller_is_origin(ctx: _, _memory: _) -> Result<u32, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::CallerIsOrigin)?;
 		Ok(ctx.ext.caller_is_origin() as u32)
@@ -1956,7 +1956,7 @@ pub mod env {
 	///
 	/// Returned value is a `u32`-encoded boolean: (`0 = false`, `1 = true`).
 	#[unstable]
-	#[riscv_syscall_no(20)]
+	#[riscv(syscall_no(20))]
 	fn caller_is_root(ctx: _, _memory: _) -> Result<u32, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::CallerIsRoot)?;
 		Ok(ctx.ext.caller_is_root() as u32)
@@ -1969,7 +1969,7 @@ pub mod env {
 	/// `out_ptr`. This call overwrites it with the size of the value. If the available
 	/// space at `out_ptr` is less than the size of the value a trap is triggered.
 	#[prefixed_alias]
-	#[riscv_syscall_no(21)]
+	#[riscv(syscall_no(21))]
 	fn address(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::Address)?;
 		Ok(ctx.write_sandbox_output(
@@ -1988,7 +1988,7 @@ pub mod env {
 	/// works with *ref_time* Weight only. It is recommended to switch to the latest version, once
 	/// it's stabilized.
 	#[prefixed_alias]
-	#[riscv_syscall_no(22)]
+	#[riscv(syscall_no(22))]
 	fn weight_to_fee(
 		ctx: _,
 		memory: _,
@@ -2026,7 +2026,7 @@ pub mod env {
 	/// unit.
 	#[version(1)]
 	#[unstable]
-	#[riscv_syscall_no(23)]
+	#[riscv(syscall_no(23), pass_by_reference)]
 	fn weight_to_fee(
 		ctx: _,
 		memory: _,
@@ -2053,7 +2053,7 @@ pub mod env {
 	/// works with *ref_time* Weight only. It is recommended to switch to the latest version, once
 	/// it's stabilized.
 	#[prefixed_alias]
-	#[riscv_syscall_no(24)]
+	#[riscv(syscall_no(24))]
 	fn gas_left(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::GasLeft)?;
 		let gas_left = &ctx.ext.gas_meter().gas_left().ref_time().encode();
@@ -2077,7 +2077,7 @@ pub mod env {
 	/// The data is encoded as Weight.
 	#[version(1)]
 	#[unstable]
-	#[riscv_syscall_no(25)]
+	#[riscv(syscall_no(25))]
 	fn gas_left(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::GasLeft)?;
 		let gas_left = &ctx.ext.gas_meter().gas_left().encode();
@@ -2100,7 +2100,7 @@ pub mod env {
 	///
 	/// The data is encoded as `T::Balance`.
 	#[prefixed_alias]
-	#[riscv_syscall_no(26)]
+	#[riscv(syscall_no(26))]
 	fn balance(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::Balance)?;
 		Ok(ctx.write_sandbox_output(
@@ -2122,7 +2122,7 @@ pub mod env {
 	///
 	/// The data is encoded as `T::Balance`.
 	#[prefixed_alias]
-	#[riscv_syscall_no(27)]
+	#[riscv(syscall_no(27))]
 	fn value_transferred(
 		ctx: _,
 		memory: _,
@@ -2227,7 +2227,7 @@ pub mod env {
 	/// `out_ptr`. This call overwrites it with the size of the value. If the available
 	/// space at `out_ptr` is less than the size of the value a trap is triggered.
 	#[prefixed_alias]
-	#[riscv_syscall_no(28)]
+	#[riscv(syscall_no(28))]
 	fn now(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::Now)?;
 		Ok(ctx.write_sandbox_output(
@@ -2244,7 +2244,7 @@ pub mod env {
 	///
 	/// The data is encoded as `T::Balance`.
 	#[prefixed_alias]
-	#[riscv_syscall_no(29)]
+	#[riscv(syscall_no(29))]
 	fn minimum_balance(
 		ctx: _,
 		memory: _,
@@ -2401,7 +2401,7 @@ pub mod env {
 	/// - `data_ptr`: a pointer to a raw data buffer which will saved along the event.
 	/// - `data_len`:  the length of the data buffer.
 	#[prefixed_alias]
-	#[riscv_syscall_no(30)]
+	#[riscv(syscall_no(30))]
 	fn deposit_event(
 		ctx: _,
 		memory: _,
@@ -2442,7 +2442,7 @@ pub mod env {
 	/// `out_ptr`. This call overwrites it with the size of the value. If the available
 	/// space at `out_ptr` is less than the size of the value a trap is triggered.
 	#[prefixed_alias]
-	#[riscv_syscall_no(31)]
+	#[riscv(syscall_no(31))]
 	fn block_number(ctx: _, memory: _, out_ptr: u32, out_len_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::BlockNumber)?;
 		Ok(ctx.write_sandbox_output(
@@ -2473,7 +2473,7 @@ pub mod env {
 	/// - `output_ptr`: the pointer into the linear memory where the output data is placed. The
 	///   function will write the result directly into this buffer.
 	#[prefixed_alias]
-	#[riscv_syscall_no(32)]
+	#[riscv(syscall_no(32))]
 	fn hash_sha2_256(
 		ctx: _,
 		memory: _,
@@ -2505,7 +2505,7 @@ pub mod env {
 	/// - `output_ptr`: the pointer into the linear memory where the output data is placed. The
 	///   function will write the result directly into this buffer.
 	#[prefixed_alias]
-	#[riscv_syscall_no(33)]
+	#[riscv(syscall_no(33))]
 	fn hash_keccak_256(
 		ctx: _,
 		memory: _,
@@ -2537,7 +2537,7 @@ pub mod env {
 	/// - `output_ptr`: the pointer into the linear memory where the output data is placed. The
 	///   function will write the result directly into this buffer.
 	#[prefixed_alias]
-	#[riscv_syscall_no(34)]
+	#[riscv(syscall_no(34))]
 	fn hash_blake2_256(
 		ctx: _,
 		memory: _,
@@ -2569,7 +2569,7 @@ pub mod env {
 	/// - `output_ptr`: the pointer into the linear memory where the output data is placed. The
 	///   function will write the result directly into this buffer.
 	#[prefixed_alias]
-	#[riscv_syscall_no(35)]
+	#[riscv(syscall_no(35))]
 	fn hash_blake2_128(
 		ctx: _,
 		memory: _,
@@ -2595,7 +2595,7 @@ pub mod env {
 	/// If no chain extension exists the contract will trap with the `NoChainExtension`
 	/// module error.
 	#[prefixed_alias]
-	#[riscv_syscall_no(36)]
+	#[riscv(syscall_no(36))]
 	fn call_chain_extension(
 		ctx: _,
 		memory: _,
@@ -2642,7 +2642,7 @@ pub mod env {
 	/// through compile time flags (cargo features) for on-chain deployment. Additionally, the
 	/// return value of this function can be cached in order to prevent further calls at runtime.
 	#[prefixed_alias]
-	#[riscv_syscall_no(37)]
+	#[riscv(syscall_no(37))]
 	fn debug_message(
 		ctx: _,
 		memory: _,
@@ -2692,7 +2692,7 @@ pub mod env {
 	/// - Provide functionality **exclusively** to contracts.
 	/// - Provide custom weights.
 	/// - Avoid the need to keep the `Call` data structure stable.
-	#[riscv_syscall_no(38)]
+	#[riscv(syscall_no(38))]
 	fn call_runtime(
 		ctx: _,
 		memory: _,
@@ -2737,7 +2737,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::EcdsaRecoverFailed`
 	#[prefixed_alias]
-	#[riscv_syscall_no(39)]
+	#[riscv(syscall_no(39))]
 	fn ecdsa_recover(
 		ctx: _,
 		memory: _,
@@ -2781,7 +2781,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::Sr25519VerifyFailed
 	#[unstable]
-	#[riscv_syscall_no(40)]
+	#[riscv(syscall_no(40))]
 	fn sr25519_verify(
 		ctx: _,
 		memory: _,
@@ -2835,7 +2835,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::CodeNotFound`
 	#[prefixed_alias]
-	#[riscv_syscall_no(41)]
+	#[riscv(syscall_no(41))]
 	fn set_code_hash(ctx: _, memory: _, code_hash_ptr: u32) -> Result<ReturnCode, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::SetCodeHash)?;
 		let code_hash: CodeHash<<E as Ext>::T> = memory.read_as(code_hash_ptr)?;
@@ -2865,7 +2865,7 @@ pub mod env {
 	///
 	/// - `ReturnCode::EcdsaRecoverFailed`
 	#[prefixed_alias]
-	#[riscv_syscall_no(42)]
+	#[riscv(syscall_no(42))]
 	fn ecdsa_to_eth_address(
 		ctx: _,
 		memory: _,
@@ -2892,7 +2892,7 @@ pub mod env {
 	///
 	/// Returns `0` when there is no reentrancy.
 	#[unstable]
-	#[riscv_syscall_no(43)]
+	#[riscv(syscall_no(43))]
 	fn reentrance_count(ctx: _, memory: _) -> Result<u32, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::ReentrantCount)?;
 		Ok(ctx.ext.reentrance_count())
@@ -2909,7 +2909,7 @@ pub mod env {
 	///
 	/// Returns `0` when the contract does not exist on the call stack.
 	#[unstable]
-	#[riscv_syscall_no(44)]
+	#[riscv(syscall_no(44))]
 	fn account_reentrance_count(ctx: _, memory: _, account_ptr: u32) -> Result<u32, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::AccountEntranceCount)?;
 		let account_id: <<E as Ext>::T as frame_system::Config>::AccountId =
@@ -2921,7 +2921,7 @@ pub mod env {
 	///
 	/// The nonce is incremented for each successful contract instantiation. This is a
 	/// sensible default salt for contract instantiations.
-	#[riscv_syscall_no(45)]
+	#[riscv(syscall_no(45))]
 	fn instantiation_nonce(ctx: _, _memory: _) -> Result<u64, TrapReason> {
 		ctx.charge_gas(RuntimeCosts::InstantationNonce)?;
 		Ok(ctx.ext.nonce())
@@ -2933,7 +2933,7 @@ pub mod env {
 	///
 	/// - `code_hash_ptr`: A pointer to the code hash of the dependency.
 	#[unstable]
-	#[riscv_syscall_no(46)]
+	#[riscv(syscall_no(46))]
 	fn add_delegate_dependency(ctx: _, memory: _, code_hash_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::AddDelegateDependency)?;
 		let code_hash = memory.read_as(code_hash_ptr)?;
@@ -2947,7 +2947,7 @@ pub mod env {
 	///
 	/// - `code_hash_ptr`: A pointer to the code hash of the dependency.
 	#[unstable]
-	#[riscv_syscall_no(47)]
+	#[riscv(syscall_no(47))]
 	fn remove_delegate_dependency(ctx: _, memory: _, code_hash_ptr: u32) -> Result<(), TrapReason> {
 		ctx.charge_gas(RuntimeCosts::RemoveDelegateDependency)?;
 		let code_hash = memory.read_as(code_hash_ptr)?;

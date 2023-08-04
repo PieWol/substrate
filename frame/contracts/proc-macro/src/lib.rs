@@ -179,7 +179,13 @@ struct HostFn {
 	alias_to: Option<String>,
 	/// Formulating the predicate inverted makes the expression using it simpler.
 	not_deprecated: bool,
-	riscv_syscall_no: Option<u32>,
+	/// If `None` the host function is not available from RISC-V.
+	riscv: Option<RiscV>,
+}
+
+struct RiscV {
+	syscall_no: u32,
+	pass_by_reference: bool,
 }
 
 enum HostFnReturn {
@@ -232,7 +238,7 @@ impl HostFn {
 		let mut is_stable = true;
 		let mut alias_to = None;
 		let mut not_deprecated = true;
-		let mut riscv_syscall_no = None;
+		let mut riscv = None;
 		while let Some(attr) = attrs.pop() {
 			let ident = attr.path().get_ident().ok_or(err(span, msg))?.to_string();
 			match ident.as_str() {
@@ -262,12 +268,33 @@ impl HostFn {
 					}
 					not_deprecated = false;
 				},
-				"riscv_syscall_no" => {
-					if riscv_syscall_no.is_some() {
-						return Err(err(span, "#[riscv_syscall_no] can only be specified once"))
+				"riscv" => {
+					if riscv.is_some() {
+						return Err(err(span, "#[riscv] can only be specified once"))
 					}
-					riscv_syscall_no =
-						Some(attr.parse_args::<syn::LitInt>().and_then(|lit| lit.base10_parse())?);
+					let mut syscall_no = None;
+					let mut pass_by_reference = false;
+					attr.parse_nested_meta(|meta| {
+						if meta.path.is_ident("syscall_no") {
+							if syscall_no.is_some() {
+								return Err(err(span, "syscall_no can only be specified once"))
+							}
+							let content;
+							syn::parenthesized!(content in meta.input);
+							let n: u32 = content.parse::<syn::LitInt>()?.base10_parse()?;
+							syscall_no = Some(n);
+							return Ok(())
+						}
+						if meta.path.is_ident("pass_by_reference") {
+							pass_by_reference = true;
+							return Ok(())
+						}
+						return Err(err(span, "unrecognized argument to #[riscv]"));
+					})?;
+					riscv = Some(RiscV {
+						syscall_no: syscall_no.ok_or_else(|| err(span, "#[riscv] needs a syscall_no argument"))?,
+						pass_by_reference,
+					});
 				},
 				_ => return Err(err(span, msg)),
 			}
@@ -374,7 +401,7 @@ impl HostFn {
 							is_stable,
 							alias_to,
 							not_deprecated,
-							riscv_syscall_no,
+							riscv,
 						})
 					},
 					_ => Err(err(span, &msg)),
@@ -630,19 +657,71 @@ fn expand_impls(def: &EnvDef) -> TokenStream2 {
 				__state__: &mut ::sp_io::RiscvState<crate::wasm::Runtime<E, crate::wasm::RiscvMemory<E::T>>>,
 				__a0__: u32,
 				__a1__: u32,
-				_a2: u32,
-				_a3: u32,
-				_a4: u32,
-				_a5: u32,
+				__a2__: u32,
+				__a3__: u32,
+				__a4__: u32,
+				__a5__: u32,
 			) -> u64 {
 				log::debug!(
 					target: "runtime::contracts::strace",
 					"ecall: a0={:08X} a1={:08X} a2={:08X} a3={:08X} a4={:08X} a5={:08X}",
-					__a0__, __a1__, _a2, _a3, _a4, _a5
+					__a0__, __a1__, __a2__, __a3__, __a4__, __a5__
 				);
 				#riscv_impls
 			}
 		}
+	}
+}
+
+fn riscv_input_decoder<'a, P, I>(func: &'a str, pass_by_reference: bool, param_names: P, param_types: I) -> TokenStream2
+where
+	P: Iterator<Item=&'a alloc::boxed::Box<syn::Pat>>,
+	I: Iterator<Item=&'a alloc::boxed::Box<syn::Type>>,
+{
+	// the input is passed as pointer to a scale encoded tuple
+	if pass_by_reference {
+		return quote! {
+			let (#( #param_names, )*): (#( #param_types, )*) = memory.read_as(__a1__)?;
+		};
+	}
+
+	// otherwise we bind the registers to names
+	const ALLOWED_REGISTERS: u32 = 5;
+	let mut registers_used = 0;
+	let mut bindings = alloc::vec![];
+	for (idx, (name, ty)) in param_names.zip(param_types).enumerate() {
+		let syn::Type::Path(path) = &**ty else {
+			panic!("Type needs to be path");
+		};
+		let Some(ident) = path.path.get_ident() else {
+			panic!("Type needs to be ident");
+		};
+		let size = if ident == "i8" || ident == "i16" || ident == "i32" || ident == "u8" || ident == "u16" || ident == "u32" {
+			1
+		} else if ident == "i64" || ident == "u64" {
+			2
+		} else {
+			panic!("Pass by value only supports primitives");
+		};
+		registers_used += size;
+		if registers_used > ALLOWED_REGISTERS {
+			panic!("Used too many registers: {}", func);
+		}
+		let this_reg = quote::format_ident!("__a{}__", idx);
+		let next_reg = quote::format_ident!("__a{}__", idx + 1);
+		let binding = if size == 1 {
+			quote! {
+				let #name = #this_reg as #ty;
+			}
+		} else {
+			quote! {
+				let #name = (#this_reg | (#next_reg << 32)) as #ty;
+			}
+		};
+		bindings.push(binding);
+	}
+	quote! {
+		#( #bindings )*
 	}
 }
 
@@ -662,6 +741,9 @@ fn expand_functions(def: &EnvDef, target: Target) -> TokenStream2 {
 			};
 			Some(&arg.ty)
 		});
+		let riscv = f.riscv.as_ref().map(|r5| (r5.syscall_no, riscv_input_decoder(&f.name, r5.pass_by_reference, param_names.clone(), param_types.clone())));
+
+		//panic!("{:#?}", param_types.collect::<Vec<_>>());
 
 		let (module, name, body, wasm_output, output) = (
 			f.module(),
@@ -779,11 +861,11 @@ fn expand_functions(def: &EnvDef, target: Target) -> TokenStream2 {
 				}
 			},
 			Target::RiscV => {
-				if let Some(idx) = f.riscv_syscall_no {
+				if let Some((syscall_no, input_decoder)) = riscv {
 					quote! {
-						#idx if #is_enabled => {
+						#syscall_no if #is_enabled => {
 							let mut func = || #output {
-								let (#( #param_names, )*): (#( #param_types, )*) = memory.read_as(__a1__)?;
+								#input_decoder
 								#wrapped_body_with_trace
 							};
 							match func() {

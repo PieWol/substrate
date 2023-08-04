@@ -21,10 +21,7 @@
 
 use crate::{
 	chain_extension::ChainExtension,
-	wasm::{
-		runtime::AllowDeprecatedInterface, Determinism, Environment, WasmBlob,
-		BYTES_PER_PAGE,
-	},
+	wasm::{runtime::AllowDeprecatedInterface, Determinism, Environment, WasmBlob, BYTES_PER_PAGE},
 	Config, Error, Schedule, LOG_TARGET,
 };
 use sp_runtime::DispatchError;
@@ -271,7 +268,7 @@ where
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 pub mod benchmarking {
 	use super::*;
-	use crate::{AccountIdOf, CodeVec, CodeInfo};
+	use crate::{AccountIdOf, CodeInfo, CodeVec};
 	use sp_runtime::traits::Hash;
 
 	/// Prepare function that does not perform export section checks on the passed in code.
@@ -305,7 +302,7 @@ mod tests {
 		exec::Ext,
 		schedule::Limits,
 		tests::Test,
-		wasm::{Memory, RiscvMemory, RiscvHandler},
+		wasm::{Memory, RiscvHandler, RiscvMemory},
 	};
 	use pallet_contracts_proc_macro::define_env;
 	use std::fmt;
