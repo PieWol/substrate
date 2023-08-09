@@ -9496,6 +9496,7 @@ version = "0.10.0-dev"
 dependencies = [
  "array-bytes",
  "assert_matches",
+ "async-channel",
  "futures",
  "futures-util",
  "hex",
