@@ -170,7 +170,7 @@ impl Drop for PermitOperations {
 
 /// The state of one operation.
 #[derive(Clone)]
-struct OperationState {
+pub struct OperationState {
 	/// True if the `chainHead` generated `waitingForContinue` event.
 	requested_continue: Arc<AtomicBool>,
 	/// Send notifications when the user calls `chainHead_continue` method.
@@ -214,14 +214,14 @@ impl RegisteredOperation {
 	}
 
 	/// Get the operation ID.
-	pub fn operation_id(&self) -> String {
+	fn operation_id(&self) -> String {
 		self.operation_id.clone()
 	}
 
 	/// Returns the number of reserved elements for this permit.
 	///
 	/// This can be smaller than the number of items requested via [`LimitOperations::reserve()`].
-	pub fn num_reserved(&self) -> usize {
+	fn num_reserved(&self) -> usize {
 		self.permit.num_ops
 	}
 }
@@ -279,8 +279,8 @@ impl Operations {
 		})
 	}
 
-	/// Get the operation ID.
-	pub fn get_operation(&mut self, id: &str) -> Option<OperationState> {
+	/// Get the associated operation state with the ID.
+	pub fn get_operation(&self, id: &str) -> Option<OperationState> {
 		self.operations.lock().get(id).map(|state| state.clone())
 	}
 
@@ -429,6 +429,11 @@ impl<Block: BlockT> SubscriptionState<Block> {
 	fn register_operation(&mut self, to_reserve: usize) -> Option<RegisteredOperation> {
 		self.operations.register_operation(to_reserve)
 	}
+
+	/// Get the associated operation state with the ID.
+	pub fn get_operation(&self, id: &str) -> Option<OperationState> {
+		self.operations.get_operation(id)
+	}
 }
 
 /// Keeps a specific block pinned while the handle is alive.
@@ -486,6 +491,11 @@ impl<Block: BlockT, BE: Backend<Block>> BlockGuard<Block, BE> {
 	/// This can be smaller than the number of items requested.
 	pub fn num_reserved(&self) -> usize {
 		self.operation.num_reserved()
+	}
+
+	/// Wait until the user calls `chainHead_continue`.
+	pub async fn wait_for_continue(&self) {
+		self.operation.wait_for_continue().await
 	}
 }
 
@@ -753,6 +763,11 @@ impl<Block: BlockT, BE: Backend<Block>> SubscriptionsInner<Block, BE> {
 			operation,
 			self.backend.clone(),
 		)
+	}
+
+	pub fn get_operation(&mut self, sub_id: &str, id: &str) -> Option<OperationState> {
+		let state = self.subs.get(sub_id)?;
+		state.get_operation(id)
 	}
 }
 
